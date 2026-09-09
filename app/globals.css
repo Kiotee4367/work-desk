@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* Brand colors are set per request on <html> by app/layout.tsx from config/brands.ts.
+   These defaults only apply if that ever fails. */
+:root {
+  --brand-primary: #2c3284;
+  --brand-accent: #96b33c;
+  --brand-ink: #1a1a1a;
+  --brand-paper: #ffffff;
+  --brand-heading: var(--font-dm-sans), system-ui, sans-serif;
+  --brand-body: var(--font-open-sans), system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-brand: var(--brand-primary);
+  --color-accent: var(--brand-accent);
+  --color-ink: var(--brand-ink);
+  --color-paper: var(--brand-paper);
+  --font-heading: var(--brand-heading);
+  --font-body: var(--brand-body);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--brand-paper);
+  color: var(--brand-ink);
+  font-family: var(--brand-body);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--brand-heading);
+}
+
+/* Visible focus for keyboard users, in the brand accent color. */
+:focus-visible {
+  outline: 3px solid var(--brand-accent);
+  outline-offset: 2px;
+}
+
+/* Users who asked their device for less motion get none. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
