@@ -33,6 +33,17 @@ Two safety settings while you are here:
 
 From now on, every time Claude Code pushes a new phase, Vercel updates your app on its own within a few minutes. You never redo these steps.
 
+### If Vercel says "No Production Deployment"
+
+The project is connected but has not built yet. Either ask Claude Code to push a small
+change (Vercel builds every push to `main`), or click **Deployments** in the left menu,
+then **Create Deployment**, pick `main`, and click **Create**. Two minutes later the
+Overview page shows a picture of the app and a **Visit** button.
+
+If you added the Environment Variables after the first build, click **Deployments**,
+open the three-dot menu on the newest one, and click **Redeploy**. Keys only take effect
+on a new build.
+
 ## Step 3: Make your first account
 
 1. Open your app's web address. You should see a sign-in page with your brand's colors.
