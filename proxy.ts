@@ -1,6 +1,6 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
-import { authConfigured, isProduction } from "@/lib/env";
+import { authConfigured, authKeyProblem, isProduction } from "@/lib/env";
 
 /**
  * Runs before every page and API request.
@@ -44,7 +44,16 @@ const PREVIEW_CSP = [
   "frame-ancestors 'none'",
 ].join("; ");
 
+function notReady(message: string) {
+  return new NextResponse(
+    "This work desk is not ready yet. " + message + "\n\nFix the value in the hosting settings (Vercel: Environment Variables) and redeploy.",
+    { status: 503, headers: { "content-type": "text/plain; charset=utf-8" } },
+  );
+}
+
 export default function proxy(req: NextRequest, evt: NextFetchEvent) {
+  const problem = authKeyProblem();
+  if (problem) return notReady(problem);
   if (authConfigured()) return withClerk(req, evt);
 
   if (isProduction()) {

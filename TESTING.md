@@ -7,6 +7,10 @@ If something does not match, tell Claude Code the line number and what you saw i
 
 Open your app's web address (from SETUP.md) and sign in.
 
+If instead you see a plain page starting "This work desk is not ready yet", read the
+sentence after it. It names which key is wrong and how to fix it in Vercel's Environment
+Variables. After fixing, click Deployments, then Redeploy on the newest one.
+
 | # | Click | You should see |
 |---|---|---|
 | 1 | Nothing yet, just look | Navy header with the Strategic eMarketing logo. Six tabs under it: Start here, Inbox, Ask anything, Brand library, Notebook, Settings. |

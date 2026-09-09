@@ -1,11 +1,14 @@
 import Link from "next/link";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
+import { auth } from "@clerk/nextjs/server";
 import type { Brand } from "@/config/brands";
 import { authConfigured } from "@/lib/env";
 import BrandLogo from "@/components/BrandLogo";
 
-export default function Header({ brand }: { brand: Brand }) {
-  const auth = authConfigured();
+export default async function Header({ brand }: { brand: Brand }) {
+  const configured = authConfigured();
+  const signedIn = configured ? Boolean((await auth()).userId) : false;
+
   return (
     <header className="bg-brand text-white">
       <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
@@ -13,24 +16,19 @@ export default function Header({ brand }: { brand: Brand }) {
           <BrandLogo brand={brand} />
         </Link>
         <div className="flex items-center gap-3 text-sm">
-          {auth ? (
-            <>
-              <SignedIn>
-                <UserButton />
-              </SignedIn>
-              <SignedOut>
-                <Link href="/sign-in" className="rounded bg-white/15 px-3 py-1.5 hover:bg-white/25">
-                  Sign in
-                </Link>
-              </SignedOut>
-            </>
-          ) : (
+          {!configured && (
             <span
               className="rounded bg-white/15 px-2 py-1 text-xs"
               title="Add Clerk keys to .env.local to turn sign-in on"
             >
               Preview mode: sign-in off
             </span>
+          )}
+          {configured && signedIn && <UserButton />}
+          {configured && !signedIn && (
+            <Link href="/sign-in" className="rounded bg-white/15 px-3 py-1.5 hover:bg-white/25">
+              Sign in
+            </Link>
           )}
         </div>
       </div>
