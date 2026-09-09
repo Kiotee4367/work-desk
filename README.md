@@ -14,6 +14,10 @@ The same code runs two ways:
 Build status: **Phase 1 of 9 done** (scaffold, layout, brand switch). See CLAUDE.md for
 the full spec and build order.
 
+## Non-coder path
+
+Read **SETUP.md** (one-time, all in the browser) and **TESTING.md** (what to click after each phase). The sections below are the technical version of the same thing.
+
 ## Run it online (Vercel)
 
 1. Go to vercel.com and sign in with GitHub.
