@@ -59,5 +59,19 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
 
   // Without Clerk keys the app runs in preview mode (development only; production refuses
   // to start, see proxy.ts). This lets the owner check screens before sign-in is set up.
-  return authConfigured() ? <ClerkProvider>{shell}</ClerkProvider> : shell;
+  const localization = {
+    signIn: {
+      start: {
+        title: `Sign in to your ${brand.shortName} work desk`,
+        subtitle: "Welcome back. Sign in to continue.",
+      },
+    },
+    signUp: {
+      start: {
+        title: `Create your ${brand.shortName} work desk account`,
+        subtitle: "Takes under a minute.",
+      },
+    },
+  };
+  return authConfigured() ? <ClerkProvider localization={localization}>{shell}</ClerkProvider> : shell;
 }

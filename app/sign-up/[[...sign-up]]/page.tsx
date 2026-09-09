@@ -1,9 +1,12 @@
 import { SignUp } from "@clerk/nextjs";
 import { authConfigured } from "@/lib/env";
+import { getActiveBrand } from "@/lib/brand";
+import BenefitsList from "@/components/BenefitsList";
 
 export const metadata = { title: "Create account" };
 
-export default function SignUpPage() {
+export default async function SignUpPage() {
+  const brand = await getActiveBrand();
   if (!authConfigured()) {
     return (
       <section className="max-w-lg">
@@ -16,8 +19,17 @@ export default function SignUpPage() {
     );
   }
   return (
-    <div className="flex justify-center py-6">
-      <SignUp />
+    <div className="grid gap-10 py-4 md:grid-cols-2 md:items-start">
+      <div>
+        <h1 className="text-2xl font-semibold">Your {brand.shortName} work desk</h1>
+        <p className="mt-2 text-ink/80">{brand.tagline}</p>
+        <div className="mt-6">
+          <BenefitsList />
+        </div>
+      </div>
+      <div className="flex justify-center md:justify-end">
+        <SignUp appearance={{ variables: { colorPrimary: brand.primary, borderRadius: "0.5rem" } }} />
+      </div>
     </div>
   );
 }
