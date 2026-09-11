@@ -15,15 +15,16 @@ Variables. After fixing, click Deployments, then Redeploy on the newest one.
 |---|---|---|
 | 1 | Nothing yet, just look | Navy header with the Strategic eMarketing logo. Six tabs under it: Start here, Inbox, Ask anything, Brand library, Notebook, Settings. |
 | 2 | Each of the six tabs | The tab you are on is underlined in green. Inbox, Ask anything, Brand library and Notebook say which phase builds them. |
-| 3 | **Settings** | A Brand box with two choices, a Setup status box, and a "Coming in later phases" list. |
+| 3 | **Settings** | An "Admin" tag in the header, a Brand (admin) box with two choices, a Setup status box, and a "Coming in later phases" list. If you see no Brand choices, your email is not in ADMIN_EMAILS in Vercel. |
 | 4 | **Holaris Advisors**, then **Save brand** | A yellow note: "Brand saved. You are now on Holaris Advisors." The header turns black with a gold star logo. Buttons turn black. |
 | 5 | **Start here** | Still Holaris colors. Heading says "Welcome to your Holaris work desk". |
 | 6 | **Settings**, **Strategic eMarketing**, **Save brand** | Back to navy and green. |
 | 7 | Your picture or initials, top right | A menu with **Sign out**. Click it. |
 | 8 | Nothing, after sign out | The sign-in page. You cannot see any other screen until you sign in again. |
 | 9 | On your phone, open the same address | Same screens, one column, tabs scroll sideways, nothing cut off. |
+| 10 | Sign up with a second email that is NOT in ADMIN_EMAILS (a prospect's view) | No Admin tag. Settings shows "This work desk is provided by ..." and no brand choices. |
 
-**Done when all nine match.** Tell Claude Code: "Phase 1 checks pass" or list the lines that failed.
+**Done when all ten match.** Tell Claude Code: "Phase 1 checks pass" or list the lines that failed.
 
 ## Phase 2 and later
 

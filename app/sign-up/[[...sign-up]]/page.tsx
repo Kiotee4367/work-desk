@@ -1,12 +1,12 @@
 import { SignUp } from "@clerk/nextjs";
 import { authConfigured } from "@/lib/env";
-import { getActiveBrand } from "@/lib/brand";
+import { deploymentBrand } from "@/lib/brand";
 import BenefitsList from "@/components/BenefitsList";
 
 export const metadata = { title: "Create account" };
 
 export default async function SignUpPage() {
-  const brand = await getActiveBrand();
+  const brand = deploymentBrand();
   if (!authConfigured()) {
     return (
       <section className="max-w-lg">

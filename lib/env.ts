@@ -40,6 +40,14 @@ export function anthropicConfigured(): boolean {
   return Boolean(process.env.ANTHROPIC_API_KEY);
 }
 
+/** Emails allowed to see admin settings (brand switch). Comma-separated, case-insensitive. */
+export function adminEmails(): string[] {
+  return (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export function isProduction(): boolean {
   return process.env.NODE_ENV === "production";
 }

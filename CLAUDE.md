@@ -30,6 +30,19 @@ If any of these is unavailable, stop and ask before substituting.
 
 ## 3. Brand config (rebranding)
 
+Deployment model: one deployment per brand, from the same repo. Each is a free tool the brand gives its prospects.
+
+| Deployment | Brand | DEFAULT_BRAND |
+|---|---|---|
+| workdesksem | Strategic eMarketing | `strategic-emarketing` |
+| workdeskha | Holaris Advisors | `holaris-advisors` |
+
+Each deployment has its own Clerk application (its own user list), its own Supabase project, and its own environment variables. A prospect signs up on one of them and only ever sees that brand. There is no brand switch for prospects.
+
+Roles: `admin` (the brand owner's own people, listed in `ADMIN_EMAILS` and, from Phase 2, `workspace_members.role = owner`) and `member` (a prospect). Only admins see the Brand section and Setup status in Settings. The admin brand switch is a preview for the admin's own session; it never changes what prospects see. Changing the brand for everyone means changing `DEFAULT_BRAND` and redeploying.
+
+Sign-up: prospects create their own account (Clerk sign-up open, email verification required, bot protection on). Each new user gets their own workspace (Phase 2). Because the tool is free, every workspace has a daily AI quota (Phase 9) and the footer carries a "Talk to {brand}" link to the contact email.
+
 One file: `config/brands.ts`. Each brand has: key, name, shortName, tagline, primary, accent, ink, paper, headingFont, bodyFont, logo path, contact email. Copy the values from `BRANDS` in the prototype. Selecting a brand in Settings is per workspace. Adding a client brand must never require touching any other file.
 
 ## 4. Data model (Supabase)
@@ -139,7 +152,7 @@ Because the app lives online AND can be downloaded to run on a local machine, th
 
 - The GitHub repository stays private. Clients get the app's web address, never the code or an env file. GitHub secret scanning and push protection are on.
 - Production refuses to start without auth keys. Preview mode (no sign-in) exists only when `NODE_ENV` is development. Never ship a way to bypass sign-in online.
-- Clerk sign-up is Restricted (invite only) so strangers cannot create accounts on an online instance. MFA available to every user.
+- Clerk sign-up is open on the prospect deployments (it is a free tool for prospects) with email verification and bot protection on; admin powers come only from `ADMIN_EMAILS` and the owner role, never from signing up. MFA available to every user. Any internal-only deployment can be set to Restricted in Clerk.
 - Every install has its own env file and its own keys. Nothing in the repo assumes a shared key. Document key rotation in SECURITY.md.
 - Security headers on every response: strict nonce-based CSP (via Clerk's `contentSecurityPolicy` option in `proxy.ts`), HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy. Keep these when adding new external services; add each new origin to the CSP list in `proxy.ts`, never loosen to `*`.
 - Cookies are HttpOnly, SameSite=Lax, Secure in production.

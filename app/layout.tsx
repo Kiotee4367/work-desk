@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import { getActiveBrand } from "@/lib/brand";
 import { authConfigured } from "@/lib/env";
+import { isAdmin } from "@/lib/auth";
 import Header from "@/components/Header";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
@@ -12,8 +13,12 @@ import Footer from "@/components/Footer";
 const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-dm-sans", display: "swap" });
 const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", display: "swap" });
 
+// Every page depends on the signed-in user and the deployment settings, so nothing is
+// pre-rendered at build time.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(): Promise<Metadata> {
-  const brand = await getActiveBrand();
+  const brand = await getActiveBrand({ admin: await isAdmin() });
   return {
     title: {
       default: `${brand.shortName} work desk`,
@@ -24,7 +29,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  const brand = await getActiveBrand();
+  const admin = await isAdmin();
+  const brand = await getActiveBrand({ admin });
   const brandStyle = {
     "--brand-primary": brand.primary,
     "--brand-accent": brand.accent,
@@ -47,7 +53,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         >
           Skip to content
         </a>
-        <Header brand={brand} />
+        <Header brand={brand} admin={admin} />
         <Nav />
         <main id="main" className="w-full max-w-5xl mx-auto px-4 py-6 flex-1">
           {children}

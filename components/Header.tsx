@@ -5,7 +5,7 @@ import type { Brand } from "@/config/brands";
 import { authConfigured } from "@/lib/env";
 import BrandLogo from "@/components/BrandLogo";
 
-export default async function Header({ brand }: { brand: Brand }) {
+export default async function Header({ brand, admin }: { brand: Brand; admin: boolean }) {
   const configured = authConfigured();
   const signedIn = configured ? Boolean((await auth()).userId) : false;
 
@@ -22,6 +22,11 @@ export default async function Header({ brand }: { brand: Brand }) {
               title="Add Clerk keys to .env.local to turn sign-in on"
             >
               Preview mode: sign-in off
+            </span>
+          )}
+          {admin && (
+            <span className="rounded bg-white/15 px-2 py-1 text-xs" title="You can switch brands and see setup status in Settings">
+              Admin
             </span>
           )}
           {configured && signedIn && <UserButton />}

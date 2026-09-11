@@ -15,7 +15,18 @@ export function defaultBrandKey(): BrandKey {
   return isBrandKey(fromEnv) ? fromEnv : DEFAULT_BRAND_KEY;
 }
 
-export async function getActiveBrand(): Promise<Brand> {
+/** The brand this deployment is for. Prospects always get this one. */
+export function deploymentBrand(): Brand {
+  return getBrand(defaultBrandKey());
+}
+
+/**
+ * The brand to show this visitor. Everyone gets the deployment brand, except an admin who
+ * has picked a different one in Settings to preview it (stored in a cookie). The admin
+ * check is done by the caller so this file stays free of Clerk.
+ */
+export async function getActiveBrand(opts: { admin: boolean }): Promise<Brand> {
+  if (!opts.admin) return deploymentBrand();
   const store = await cookies();
   const key = store.get(BRAND_COOKIE)?.value;
   return getBrand(isBrandKey(key) ? key : defaultBrandKey());

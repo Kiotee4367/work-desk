@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getActiveBrand } from "@/lib/brand";
+import { isAdmin } from "@/lib/auth";
 import BenefitsList from "@/components/BenefitsList";
 
 const STEPS = [
@@ -34,7 +35,7 @@ const CHECKS = [
 ];
 
 export default async function StartPage() {
-  const brand = await getActiveBrand();
+  const brand = await getActiveBrand({ admin: await isAdmin() });
   return (
     <div className="flex flex-col gap-8">
       <section>

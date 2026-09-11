@@ -13,7 +13,7 @@ You do this once. About 15 minutes. You need a web browser and nothing else.
 
 Two safety settings while you are here:
 
-5. In the left menu click **Configure**, then **Restrictions**. Set sign-up mode to **Restricted**. Now only people you invite can create an account.
+5. In the left menu click **Configure**, then **Restrictions**. Leave sign-up mode on **Public** so prospects can create their own account, and turn on **Bot protection** if it is offered. (Only set Restricted for an internal-only copy.)
 6. Click **Configure**, then **Multi-factor**. Turn on **Authenticator application**. This lets users add a second check at sign-in.
 
 ## Step 2: Put the app online with Vercel (5 minutes)
@@ -27,6 +27,8 @@ Two safety settings while you are here:
    |---|---|
    | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | the key starting with `pk_test_` |
    | `CLERK_SECRET_KEY` | the key starting with `sk_test_` |
+   | `DEFAULT_BRAND` | `strategic-emarketing` for workdesksem, `holaris-advisors` for workdeskha |
+   | `ADMIN_EMAILS` | your own sign-in email (several: separate with commas) |
 
 5. Click **Deploy**. Wait about two minutes.
 6. Click **Visit** (or the preview picture). That is your app's web address. Bookmark it.
@@ -44,12 +46,22 @@ If you added the Environment Variables after the first build, click **Deployment
 open the three-dot menu on the newest one, and click **Redeploy**. Keys only take effect
 on a new build.
 
+## Two brands, two deployments
+
+The same code runs once per brand. In Vercel you make two projects from the same repository:
+
+| Vercel project | Brand | DEFAULT_BRAND | Clerk application |
+|---|---|---|---|
+| workdesksem | Strategic eMarketing | `strategic-emarketing` | its own |
+| workdeskha | Holaris Advisors | `holaris-advisors` | its own |
+
+Each project gets its own Clerk application (repeat Step 1 for the second brand) so the two prospect lists never mix. When Claude Code pushes an update, both projects rebuild on their own.
+
 ## Step 3: Make your first account
 
 1. Open your app's web address. You should see a sign-in page with your brand's colors.
-2. Click **Sign up**. Because sign-up is Restricted, you first need to invite yourself:
-   go back to the Clerk tab, click **Users**, then **Invite**, type your email, send.
-3. Open the invite email, follow the link, set a password.
+2. Click **Sign up** and use the email you put in ADMIN_EMAILS. That makes you an admin.
+3. Check your inbox for the verification code, enter it, set a password.
 4. You are in. Go to TESTING.md and run the Phase 1 checks.
 
 ## Later phases will ask for
