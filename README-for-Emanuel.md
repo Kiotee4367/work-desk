@@ -15,7 +15,7 @@ Things Claude Code will ask you for along the way (have them ready):
 - Supabase project URL and keys (from supabase.com, Project Settings, API)
 - Clerk keys (from clerk.com, API Keys)
 - Anthropic API key (from console.anthropic.com)
-- Later: Google Cloud OAuth client for Gmail, and a Slack app for Slack
+- Later: Google Cloud OAuth client for Gmail, a Slack app for Slack, and a Microsoft Entra app for Outlook and Teams (all free to create; Claude Code gives click-by-click steps at Phase 7)
 
 Never paste keys into chat here. Put them in the `.env.local` file Claude Code creates, when it tells you to.
 

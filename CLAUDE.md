@@ -21,7 +21,7 @@ A working single-file React prototype is in `prototype/WorkDashboard.jsx`. Match
 - Supabase: Postgres, Row Level Security on every table, Storage for uploaded files.
 - Clerk for auth with SSO and two-factor available.
 - Anthropic API (default), OpenAI and Google Gemini behind one provider interface.
-- Gmail API and Slack API, read-only scopes only.
+- Gmail API, Microsoft Graph (Outlook mail and Teams chat) and Slack API, read-only scopes only.
 - Inngest for background jobs (document extraction, web research, inbox sync).
 - Sentry for errors.
 - Fonts: DM Sans (headings), Open Sans (body), loaded from Google Fonts.
@@ -54,7 +54,7 @@ All tables carry `workspace_id`, `created_at`, `updated_at`. RLS: a user sees on
 - `brand_library`: workspace_id (unique), about, voice, tone, avoid, signoff, sample
 - `sources`: id, workspace_id, name, type (upload, website, web_research, deep_research, note), status (processing, ready, failed), text (extracted notes, max 4,000 chars), file_path (Storage, nullable), is_on (bool, default true), origin_url (nullable)
 - `contacts`: id, workspace_id, email (lowercase, unique per workspace), name, company, audience (client, prospect, partner, vendor, team, press, personal, unknown), role (free text, e.g. "Office manager"), notes (text, max 2,000 chars), preferred_tone (warm, direct, formal, apologetic, nullable), source (manual, suggested), last_seen_at
-- `messages`: id, workspace_id, channel (email, slack, pasted), external_id, thread_id (nullable; Gmail thread or Slack thread), sender, subject, body, received_at, priority (reply_today, this_week, can_wait, no_reply), summary, why, flags (jsonb), triaged_at, status (open, done, snoozed), done_at, snoozed_until
+- `messages`: id, workspace_id, channel (email, outlook, slack, teams, pasted), external_id, thread_id (nullable; Gmail thread or Slack thread), sender, subject, body, received_at, priority (reply_today, this_week, can_wait, no_reply), summary, why, flags (jsonb), triaged_at, status (open, done, snoozed), done_at, snoozed_until
 - `drafts`: id, workspace_id, message_id, tone, purpose (see Purpose list below), body, ai_body (the AI's version before the user edited it), checklist (jsonb: facts, names, private, person), copied_at
 - `draft_events`: id, workspace_id, user_id, draft_id, kind (tone_picked, purpose_picked, nudge_clicked, edited, copied, person_confirmed, priority_changed), detail (jsonb: which button, or the before and after of an edit), created_at
 - `user_style`: workspace_id, user_id, answers (jsonb, keyed by question id), summary (text the AI reads, built from the answers), updated_at
@@ -112,7 +112,7 @@ Triage output is strict JSON matching the prototype's fields, plus `suggested_au
 5. Brand library: six fields, Save, link to Notebook with active source count. Below it, "Your style" (the questionnaire summary with Edit) and "What I've learned from you" (learned rules with a mute switch each, and Forget everything).
 6. Notebook: left panel with "+ Add sources" drop zone, web search box with Quick web and Deep research modes, source cards with on/off checkbox, View, Delete (confirm first), Switch all on/off. Right panel: grounded chat, starter chips (Briefing doc, Key facts, FAQ, Talking points, What is missing), "Save as a source" on answers, Clear chat.
 7. People: list of email recipients the user deals with. Search box. Each row shows name, email, audience badge, role, company. "+ Add person" form and Edit form with: name, email, company, audience (radio list with a one-line plain-language meaning for each), role, preferred tone, notes ("Anything the AI should keep in mind: how they like to be addressed, what you've promised them, what to avoid"). Delete with confirm. Rows created by a triage suggestion carry a "Suggested, please confirm" badge until edited. The Draft a reply screen shows the sender's profile card beside the original message with an inline Edit link, and the "Before you send" checklist adds "Right person, right tone" when the audience is unknown.
-8. Settings: brand switch, model picker, connections (Gmail, Outlook, Slack, Teams with connect buttons; Outlook and Teams can be "coming soon"), Help (restart tour), Security section text from the prototype, assistant instructions.
+8. Settings: brand switch (admin), model picker, connections (Google for Gmail, Microsoft for Outlook and Teams, Slack; all real, none "coming soon"), Help (restart tour), Security section text from the prototype, assistant instructions.
 
 Audience meanings shown in the UI:
 - Client: pays you now. Warm, prompt, specific.
@@ -130,6 +130,10 @@ Global: guided tour (six steps from the prototype `TOUR` array) that auto-starts
 
 - Gmail: OAuth with `gmail.readonly` only. Sync the last 7 days of the primary inbox on connect, then every 15 minutes via Inngest. Group by Gmail thread id. Skip messages the user already replied to (a later message in the thread from the user's own address) and mark them done. Never request send scopes.
 - Slack: OAuth with `channels:history`, `groups:history`, `im:history`, `users:read` only. Let the user pick channels to watch. Never request `chat:write`.
+- Outlook: Microsoft Entra app, OAuth with `Mail.Read` and `User.Read` only (delegated). Sync the last 7 days of the Inbox folder on connect, then every 15 minutes via Inngest, using Graph delta queries so each sync fetches only what changed. Group by `conversationId`. Skip threads the user already replied to. Never request `Mail.Send` or `Mail.ReadWrite`.
+- Teams: same Entra app, add `Chat.Read` and `ChannelMessage.Read.All` (delegated). Let the user pick chats and channels to watch, same picker as Slack. Never request `ChatMessage.Send`. Note: `ChannelMessage.Read.All` needs admin consent in the prospect's Microsoft tenant; show that in plain words on the connect screen and let the user connect Outlook and personal chats first without it.
+- One "Microsoft" connect button covers Outlook and Teams with one sign-in; the user ticks which of the two to sync. One "Google" button covers Gmail. Slack is its own button.
+- Every connection shows: what it reads, that it never sends, when it last synced, and a Disconnect button.
 - Store tokens encrypted (Supabase Vault or app-level AES with a key in Vercel env). Disconnect must revoke and delete tokens.
 - Pasted messages always work with no connection.
 
@@ -171,7 +175,7 @@ Do these in sequence. After each phase, stop, run the app, and tell the owner in
 4. Inbox with pasted messages: triage, cards grouped by conversation, collapsed groups, Mark done, snooze, Today line, Draft the day, keyboard shortcuts, Draft a reply, checklist, copy, audit log, time-saved estimate on Start here. Purpose picker and draft_events capture. Sender lookup in contacts, suggested audience and role on unknown senders, profile card on Draft a reply, profile block in the triage and draft prompts.
 5. Notebook: uploads to Storage, Inngest extraction job (PDF via provider document input, DOCX via mammoth, text direct, condense when over 6,000 chars), web search and deep research jobs, on/off, delete, grounded chat, save as source.
 6. Settings: model picker, prompt viewer and override, Security and Help sections. Guided tour and toasts. Learning job (Inngest) that writes learned_rules, and the "What I've learned from you" section in Brand library.
-7. Gmail connection and sync. Then Slack.
+7. Connections, in this order: Gmail, Slack, Outlook, Teams. Each one: OAuth, first sync, 15-minute sync, channel or chat picker where relevant, disconnect that revokes and deletes tokens. Stop after each and let the owner connect a real account.
 8. OpenAI and Gemini adapters.
 9. Retention cron, rate limiting, credential stripping, RLS tests, `.env.example`, README.
 

@@ -8,7 +8,7 @@ export const metadata = { title: "Settings" };
 
 const LATER = [
   { title: "AI model", text: "Pick which Claude model answers. Other providers come later.", phase: 6 },
-  { title: "Connections", text: "Gmail, Outlook, Slack and Teams. Read-only. Nothing is ever sent.", phase: 7 },
+  { title: "Connections", text: "Gmail, Outlook, Slack and Teams. All read-only. Nothing is ever sent.", phase: 7 },
   { title: "Assistant instructions", text: "See exactly what the AI is told, and override it if you want.", phase: 6 },
   { title: "Security", text: "Plain-language notes on where your data lives and who can see it.", phase: 6 },
   { title: "Help", text: "Restart the two-minute tour.", phase: 6 },
