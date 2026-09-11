@@ -17,6 +17,11 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
   // Old Internet Explorer download protection; harmless elsewhere.
   { key: "X-DNS-Prefetch-Control", value: "off" },
+  // Keep other sites from reaching into this app's window, while still allowing the
+  // sign-in popups Clerk uses for Google.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
+  // This app's own files can only be embedded by this app.
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
 const nextConfig: NextConfig = {

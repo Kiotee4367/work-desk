@@ -4,6 +4,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    # Wait a week after a release before proposing it, so a poisoned or broken
+    # release is usually caught by others first.
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
@@ -12,3 +16,5 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    cooldown:
+      default-days: 7

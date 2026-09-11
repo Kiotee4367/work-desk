@@ -13,8 +13,10 @@ The full checklist the build follows is in CLAUDE.md, section 8.
   Preview mode with sign-in off works only on a developer's own computer.
 - **Browser hardening.** Every response carries a strict Content Security Policy (with a
   fresh nonce per request), HTTPS-only for two years (HSTS), no framing by other sites,
-  no file-type guessing, limited referrer, and unused browser features turned off.
-  See `proxy.ts` and `next.config.ts`.
+  no file-type guessing, limited referrer, unused browser features turned off, and
+  cross-origin isolation headers. See `proxy.ts` and `next.config.ts`.
+- **Automated scanning.** Every push runs a static security scan (Semgrep with OWASP
+  rules) and `npm audit`. Both also run every Monday morning.
 - **Cookies** are HttpOnly, SameSite=Lax, and Secure online.
 - **No telemetry.** Next.js and Clerk usage reporting are switched off in `.env.example`.
 - **Read-only by design.** The app never sends email or chat messages. Later phases only
@@ -45,4 +47,11 @@ The full checklist the build follows is in CLAUDE.md, section 8.
 
 ## Reporting a problem
 
-Email the contact address shown in the app footer.
+Email the address in `/.well-known/security.txt`. We acknowledge within 2 business days,
+fix critical issues within 7 days, and credit reporters who want it. Please give us time
+to fix before publishing.
+
+## After launch
+
+See MAINTENANCE.md for the owner's weekly, monthly and quarterly checklist, and CLAUDE.md
+section 8 for the full program the build follows.

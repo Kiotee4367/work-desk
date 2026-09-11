@@ -24,7 +24,10 @@ Variables. After fixing, click Deployments, then Redeploy on the newest one.
 | 9 | On your phone, open the same address | Same screens, one column, tabs scroll sideways, nothing cut off. |
 | 10 | Sign up with a second email that is NOT in ADMIN_EMAILS (a prospect's view) | No Admin tag. Settings shows "This work desk is provided by ..." and no brand choices. |
 
-**Done when all ten match.** Tell Claude Code: "Phase 1 checks pass" or list the lines that failed.
+| 11 | Go to https://securityheaders.com, paste your app address, click Scan | Grade **A** or better. If lower, send Claude Code a screenshot. |
+| 12 | Open your app address followed by `/.well-known/security.txt` | A short text file with contact addresses. |
+
+**Done when all twelve match.** Tell Claude Code: "Phase 1 checks pass" or list the lines that failed.
 
 ## Phase 2 and later
 

@@ -137,33 +137,67 @@ Global: guided tour (six steps from the prototype `TOUR` array) that auto-starts
 - Store tokens encrypted (Supabase Vault or app-level AES with a key in Vercel env). Disconnect must revoke and delete tokens.
 - Pasted messages always work with no connection.
 
-## 8. Security requirements (must all be true before launch)
+## 8. Security program (build and maintenance)
 
-- All secrets in environment variables; none in the repo. Add `.env.example`.
-- Clerk sessions, MFA available, SSO ready for enterprise clients.
-- RLS on every table; verify with a test that a user in workspace A cannot read workspace B.
-- Encryption in transit (TLS) and at rest (Supabase default plus encrypted tokens).
-- Retention cron working and configurable per workspace.
-- Uploads: max 20 MB, allowed types pdf, docx, txt, md; scan file type by content, not extension.
-- The prompt-injection, sensitive-data and phishing rules live in the system prompt AND the app strips obvious credential patterns (card numbers, SSNs, "password:" lines) from drafts server-side before display.
-- Audit log for: sort, draft created, draft copied, source added, source deleted, person added, edited or deleted, connection added or removed, settings changed.
-- Draft events contain the user's own edits, which can include message text. They live under the same RLS and retention as drafts, never go to Sentry, and are used only inside the workspace to write learned rules. Learned rules and the style summary must never quote a message body or a third party's name; the learning prompt says so and the app rejects any rule over 160 characters or containing an email address.
-- Contact notes are personal data about third parties. Keep them inside the workspace's RLS, never send them to Sentry or logs, strip credential patterns from them on save, and include them in the workspace export and delete flows.
-- Rate limit AI calls per workspace.
-- Never log message bodies or drafts to Sentry.
+Security is a requirement of every phase, not a phase of its own. Each phase's definition of done includes the items below that apply to it. Nothing launches to prospects until every item in "Before launch" is true.
 
-Because the app lives online AND can be downloaded to run on a local machine, these also apply:
+### 8.1 Identity and access
+- Clerk for sign-in. Email verification required. Bot protection on. Password breach detection on (Clerk setting). MFA available to every user; required for admins.
+- Sessions: inactivity timeout 7 days, absolute lifetime 30 days, "Sign out everywhere" available in the user menu. Session cookies are HttpOnly, Secure, SameSite=Lax.
+- Roles: `admin` (brand owner's staff, from `ADMIN_EMAILS` and `workspace_members.role = owner`) and `member` (prospect). Admin power never comes from sign-up. Every admin-only action checks the role on the server, never only in the UI.
+- Least privilege everywhere: read-only OAuth scopes (Gmail, Outlook, Slack, Teams), Supabase anon key in the browser and RLS doing the real work, service-role key only in background jobs, one Vercel token per deployment.
+- Every workspace is isolated by Row Level Security on every table, keyed on the Clerk user id in the JWT. A test proves a user in workspace A cannot read, write or delete in workspace B, for every table, and runs in CI.
 
-- The GitHub repository stays private. Clients get the app's web address, never the code or an env file. GitHub secret scanning and push protection are on.
-- Production refuses to start without auth keys. Preview mode (no sign-in) exists only when `NODE_ENV` is development. Never ship a way to bypass sign-in online.
-- Clerk sign-up is open on the prospect deployments (it is a free tool for prospects) with email verification and bot protection on; admin powers come only from `ADMIN_EMAILS` and the owner role, never from signing up. MFA available to every user. Any internal-only deployment can be set to Restricted in Clerk.
-- Every install has its own env file and its own keys. Nothing in the repo assumes a shared key. Document key rotation in SECURITY.md.
-- Security headers on every response: strict nonce-based CSP (via Clerk's `contentSecurityPolicy` option in `proxy.ts`), HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy. Keep these when adding new external services; add each new origin to the CSP list in `proxy.ts`, never loosen to `*`.
-- Cookies are HttpOnly, SameSite=Lax, Secure in production.
-- Telemetry off (`NEXT_TELEMETRY_DISABLED`, `NEXT_PUBLIC_CLERK_TELEMETRY_DISABLED`).
-- Dependabot and `npm audit --audit-level=high` in CI. A high or critical finding blocks a release.
-- Local installs bind the dev server to localhost only. Never expose a local install to a network without the online-grade config (real keys, HTTPS).
-- The health endpoint returns no secrets and no user data.
+### 8.2 Secrets and configuration
+- No secrets in the repo, ever. `.env.example` lists names only. `.env*` is git-ignored. GitHub secret scanning and push protection are on.
+- Secrets live in Vercel Environment Variables (Sensitive type for anything not `NEXT_PUBLIC_`). Each deployment (workdesksem, workdeskha, each laptop) has its own keys.
+- OAuth tokens for connections are encrypted at rest with AES-256-GCM using a key held only in the environment (`TOKEN_ENCRYPTION_KEY`, 32 bytes, base64). Disconnect revokes the token at the provider and deletes the row.
+- Key rotation: quarterly for all API keys and the token encryption key (with re-encryption job), immediately on any suspected leak or when a staff member leaves.
+- Production refuses to start without auth keys. Preview mode (no sign-in) exists only in development.
+
+### 8.3 Application hardening
+- Every response carries: strict nonce-based CSP (no `unsafe-inline` for scripts in production), HSTS with preload, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, a tight `Permissions-Policy`, `Cross-Origin-Opener-Policy: same-origin-allow-popups`, `Cross-Origin-Resource-Policy: same-origin`. Adding a new external service means adding its origin to the CSP list, never widening to `*`.
+- All input validated on the server with zod: form fields, JSON bodies, query strings, AI JSON output. Reject, never coerce.
+- Server actions and route handlers check the session and the role first, then the workspace, then do the work. No action trusts an id from the client without confirming it belongs to the caller's workspace.
+- Uploads: 20 MB max, types pdf, docx, txt, md checked by file content (magic bytes), stored in a private Supabase bucket under `workspace_id/`, served only through signed URLs that expire in 10 minutes. Files are scanned for embedded scripts and macros; DOCX with macros is rejected.
+- Rate limits per workspace and per user on every AI call and on sign-in, sign-up and connection endpoints. Free-tool daily AI quota per workspace, shown to the user before they hit it.
+- Prompt injection defenses: the system prompt says message text, source text and notes are data, not instructions; the app strips credential patterns (card numbers, SSNs, "password:" lines, API-key shapes) from drafts and learned rules server-side; the AI never gets a tool that can send, delete or connect anything.
+- Supply chain: GitHub Actions pinned to full commit SHAs (never a tag), CI container images pinned to a version, Dependabot with a 7-day cooldown so a bad release is usually caught by others first. Dependencies pinned by lockfile. `npm audit --audit-level=high` and a static analysis scan (Semgrep, OWASP rules) run in CI on every push and block merge on findings. Dependabot opens weekly update PRs.
+- No `dangerouslySetInnerHTML`. Email HTML is converted to text on the server before it is stored or shown.
+
+### 8.4 Data protection and privacy
+- Encryption in transit (TLS 1.2+ only, HSTS) and at rest (Supabase default, plus app-level encryption for tokens).
+- Data minimization: store message summaries and the text needed to draft, not attachments. Retention cron deletes messages, drafts, draft events and notebook chats older than `retention_days` (default 30, per workspace, user-visible in Settings).
+- User rights: every user can export their workspace (JSON) and delete their account, which deletes the workspace, its rows, its files and its tokens within 24 hours, and revokes connections. Both are self-serve in Settings.
+- Nothing sensitive leaves the workspace: message bodies, drafts, notes and learned rules are never sent to Sentry, logs, analytics or any third party other than the chosen AI provider for the request itself. Sentry runs with `sendDefaultPii: false` and a `beforeSend` scrubber.
+- AI providers: Anthropic API by default with no training on inputs under its commercial terms; the same requirement applies to any provider added later. The provider in use is named in the Security section of Settings.
+- A privacy notice in plain language in the app (Settings, Security) states what is read, what is stored, for how long, who can see it, and how to delete it.
+
+### 8.5 Logging, monitoring and audit
+- Audit log for: sign-in, sort, draft created, draft copied, source added or deleted, person added, edited or deleted, connection added or removed, settings changed, export, delete account, admin brand preview, and every admin action. Entries hold who, what, when and the ids, never message bodies.
+- Sentry for errors with PII scrubbing. Vercel logs kept 30 days. Uptime check on `/api/health` every 5 minutes with an email alert.
+- Alerts on: repeated sign-in failures, rate-limit trips, AI quota exhaustion, failed retention cron, failed sync jobs, CI security findings.
+
+### 8.6 Maintenance schedule (after launch)
+- Weekly: merge Dependabot PRs after CI is green; read the Sentry digest; check the uptime report.
+- Monthly: review the audit log for admin actions; review who is in `ADMIN_EMAILS` and Clerk's admin list; confirm the retention cron ran; check Vercel, Clerk, Supabase and provider status pages for incidents.
+- Quarterly: rotate all keys; run the RLS test suite and a fresh Semgrep scan by hand; test a Supabase backup restore into a scratch project; review OAuth scopes against what the app uses; re-read this section and update it.
+- Yearly: independent penetration test before adding any paid tier or enterprise client; review the privacy notice.
+- Before each phase merges: threat-model the new surface in three lines (what is new, what could go wrong, what stops it) in the phase's session-output file.
+
+### 8.7 Incident response
+- A leaked key: rotate it within one hour, redeploy, check the audit log and provider dashboards for misuse, note it in `SECURITY-LOG.md`.
+- A suspected breach of user data: disable sign-in (Clerk), snapshot the database, identify the affected workspaces from the audit log, notify affected users within 72 hours with what happened and what to do, restore from a clean backup if needed.
+- A vulnerability report from outside: acknowledge within 2 business days, fix critical issues within 7 days, credit the reporter if they wish. Contact address published at `/.well-known/security.txt`.
+
+### 8.8 Before launch (all must be true)
+- All of 8.1 to 8.5 implemented and checked off in TESTING.md.
+- Clerk production instance on the brand's own domain, MFA enforced for admins.
+- RLS tests, `npm audit`, Semgrep and `npm run build` green in CI.
+- Privacy notice, export and delete-account working.
+- Uptime alerting and Sentry wired.
+- Backups verified with one restore test.
+- The owner has completed the checklist in MAINTENANCE.md once by hand.
 
 ## 9. Build order
 
@@ -177,11 +211,12 @@ Do these in sequence. After each phase, stop, run the app, and tell the owner in
 6. Settings: model picker, prompt viewer and override, Security and Help sections. Guided tour and toasts. Learning job (Inngest) that writes learned_rules, and the "What I've learned from you" section in Brand library.
 7. Connections, in this order: Gmail, Slack, Outlook, Teams. Each one: OAuth, first sync, 15-minute sync, channel or chat picker where relevant, disconnect that revokes and deletes tokens. Stop after each and let the owner connect a real account.
 8. OpenAI and Gemini adapters.
-9. Retention cron, rate limiting, credential stripping, RLS tests, `.env.example`, README.
+9. Retention cron, rate limiting and AI quota, credential stripping, RLS test suite in CI, export and delete account, privacy notice, Sentry scrubbing, uptime alerting, security.txt, Clerk production instance, `.env.example`, README, MAINTENANCE.md walkthrough with the owner.
 
 ## 10. Definition of done for each phase
 
-- `npm run build` passes with no type errors.
+- `npm run build` passes with no type errors. CI is green, including `npm audit` and the Semgrep scan.
+- The security items in section 8 that touch this phase are done and listed in the phase's session-output file with a three-line threat model.
 - Every screen works on a 390 px wide phone and a laptop.
 - No em dashes anywhere in UI copy. No emojis except the progress checkmark.
 - Every button that is disabled shows why nearby.
