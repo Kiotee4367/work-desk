@@ -41,14 +41,14 @@ All tables carry `workspace_id`, `created_at`, `updated_at`. RLS: a user sees on
 - `brand_library`: workspace_id (unique), about, voice, tone, avoid, signoff, sample
 - `sources`: id, workspace_id, name, type (upload, website, web_research, deep_research, note), status (processing, ready, failed), text (extracted notes, max 4,000 chars), file_path (Storage, nullable), is_on (bool, default true), origin_url (nullable)
 - `contacts`: id, workspace_id, email (lowercase, unique per workspace), name, company, audience (client, prospect, partner, vendor, team, press, personal, unknown), role (free text, e.g. "Office manager"), notes (text, max 2,000 chars), preferred_tone (warm, direct, formal, apologetic, nullable), source (manual, suggested), last_seen_at
-- `messages`: id, workspace_id, channel (email, slack, pasted), external_id, sender, subject, body, received_at, priority (reply_today, this_week, can_wait, no_reply), summary, why, flags (jsonb), triaged_at
+- `messages`: id, workspace_id, channel (email, slack, pasted), external_id, thread_id (nullable; Gmail thread or Slack thread), sender, subject, body, received_at, priority (reply_today, this_week, can_wait, no_reply), summary, why, flags (jsonb), triaged_at, status (open, done, snoozed), done_at, snoozed_until
 - `drafts`: id, workspace_id, message_id, tone, purpose (see Purpose list below), body, ai_body (the AI's version before the user edited it), checklist (jsonb: facts, names, private, person), copied_at
 - `draft_events`: id, workspace_id, user_id, draft_id, kind (tone_picked, purpose_picked, nudge_clicked, edited, copied, person_confirmed, priority_changed), detail (jsonb: which button, or the before and after of an edit), created_at
 - `user_style`: workspace_id, user_id, answers (jsonb, keyed by question id), summary (text the AI reads, built from the answers), updated_at
 - `learned_rules`: id, workspace_id, user_id, rule (one plain sentence, max 160 chars), evidence_count, status (active, muted), created_at, updated_at
 - `notebook_chats`: id, workspace_id, role, text, created_at
 - `audit_log`: id, workspace_id, user_id, action, detail (jsonb), created_at
-- `milestones`: workspace_id, user_id, tour_done, style_done_at, first_copy_at
+- `milestones`: workspace_id, user_id, tour_done, style_done_at, first_copy_at, triaged_count, copied_count (both used for the time-saved estimate)
 
 Retention: an Inngest cron deletes messages, drafts, draft_events and notebook_chats older than `retention_days`. Sources, brand library, contacts, user_style and learned_rules are kept until the user deletes them.
 
@@ -85,6 +85,15 @@ Triage output is strict JSON matching the prototype's fields, plus `suggested_au
 
 1. Start here: welcome, setup progress (five checks: brand library, style questionnaire, first source, first sort, first copy), three-step cards with Go buttons, seven habit tiles, "Take the two-minute tour".
 2. Inbox: paste box plus, when connected, synced Gmail and Slack messages in one list. Sort by priority. Cards show priority badge, channel, sender, summary, why, flags, "Draft a reply".
+
+   The Inbox is built to cut the time spent looking, scrolling and replying:
+   - One card per conversation, not per message. Replies in the same thread collapse into the newest card with a "3 in thread" tag. Older messages open on click.
+   - The card shows the summary, never the full email. The full text is one click away, collapsed by default.
+   - Four groups in fixed order: Reply today, This week, Can wait, No reply needed. "No reply needed" and "Can wait" start collapsed with a count, so the page opens on the few things that matter.
+   - "Mark done" on every card. Copying a draft marks its conversation done on its own. Done items leave the list (a "Show done" link brings them back). Snooze until tomorrow or next week is one click.
+   - "Draft the day": one button that drafts a reply for everything in Reply today at once, then walks through them one at a time with Copy, Skip, Mark done. Keyboard: J and K move, D marks done, C copies.
+   - A short "Today" line at the top: "4 need a reply today, 6 can wait, 12 need nothing." That line is the whole point; the user should be able to read it and close the app.
+   - Start here shows a time-saved estimate from milestones: 2 minutes per conversation triaged instead of read, 4 minutes per draft copied. Shown as "About 1 hour 20 minutes saved this week." Estimates only, labeled as such.
 3. Draft a reply: original on the left with the sender's profile card; purpose picker (preselected from triage) and tone buttons (Warm, Direct, Formal, Apologetic); editable draft; nudge buttons (shorter, warmer, more formal, add next step); "Before you send" checklist that unlocks Copy. Copy writes to `drafts.copied_at` and `audit_log`.
 4. Ask anything: prompt starter chips plus free text, answered with the full system prompt.
 5. Brand library: six fields, Save, link to Notebook with active source count. Below it, "Your style" (the questionnaire summary with Edit) and "What I've learned from you" (learned rules with a mute switch each, and Forget everything).
@@ -106,7 +115,7 @@ Global: guided tour (six steps from the prototype `TOUR` array) that auto-starts
 
 ## 7. Connections
 
-- Gmail: OAuth with `gmail.readonly` only. Sync the last 7 days of the primary inbox on connect, then every 15 minutes via Inngest. Never request send scopes.
+- Gmail: OAuth with `gmail.readonly` only. Sync the last 7 days of the primary inbox on connect, then every 15 minutes via Inngest. Group by Gmail thread id. Skip messages the user already replied to (a later message in the thread from the user's own address) and mark them done. Never request send scopes.
 - Slack: OAuth with `channels:history`, `groups:history`, `im:history`, `users:read` only. Let the user pick channels to watch. Never request `chat:write`.
 - Store tokens encrypted (Supabase Vault or app-level AES with a key in Vercel env). Disconnect must revoke and delete tokens.
 - Pasted messages always work with no connection.
@@ -146,7 +155,7 @@ Do these in sequence. After each phase, stop, run the app, and tell the owner in
 1. Scaffold: Next.js, Tailwind, Clerk, Supabase client, brand config, layout with header, nav and footer from the prototype. Brand switch works. Security headers, `.env.example`, README with online and local install steps. (Done.)
 2. Brand library, milestones, contacts and user_style: tables, RLS, save and load. Start page progress works. People screen with add, edit, search, delete. Style questionnaire and summary.
 3. AI provider (Anthropic) and Ask anything.
-4. Inbox with pasted messages: triage, cards, Draft a reply, checklist, copy, audit log. Purpose picker and draft_events capture. Sender lookup in contacts, suggested audience and role on unknown senders, profile card on Draft a reply, profile block in the triage and draft prompts.
+4. Inbox with pasted messages: triage, cards grouped by conversation, collapsed groups, Mark done, snooze, Today line, Draft the day, keyboard shortcuts, Draft a reply, checklist, copy, audit log, time-saved estimate on Start here. Purpose picker and draft_events capture. Sender lookup in contacts, suggested audience and role on unknown senders, profile card on Draft a reply, profile block in the triage and draft prompts.
 5. Notebook: uploads to Storage, Inngest extraction job (PDF via provider document input, DOCX via mammoth, text direct, condense when over 6,000 chars), web search and deep research jobs, on/off, delete, grounded chat, save as source.
 6. Settings: model picker, prompt viewer and override, Security and Help sections. Guided tour and toasts. Learning job (Inngest) that writes learned_rules, and the "What I've learned from you" section in Brand library.
 7. Gmail connection and sync. Then Slack.
